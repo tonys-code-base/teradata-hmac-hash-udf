@@ -1,0 +1,51 @@
+/******************************************************************************/
+/*                                                                            */
+/* This script loads keys from hmac_sample_keys.txt into target table         */
+/* myproj.k_store.                                                            */
+/*                                                                            */
+/* Author : Tony Tannous                                                      */
+/*                                                                            */
+/* Execute script using:                                                      */
+/*  tbuild -f tpt_sample_load_k_store.script -j tpt_sample_load_k_store -s 1  */
+/*                                                                            */
+/* Replace the following to reflect your setup                                */
+/*                                                                            */
+/* <Teradata_Host/IP>                                                         */
+/* <Teradata_Username>                                                        */
+/* <Teradata_Password>                                                        */
+/*                                                                            */
+/******************************************************************************/
+USING CHARACTER SET ASCII
+DEFINE JOB Load_Hmac_Keys
+DESCRIPTION 'Load of Keys into Target Table k_store'
+(
+
+	DEFINE SCHEMA hmac_metadata
+	DESCRIPTION 'Input hmac_metadata.data Layout Definition'
+	(
+		key_name    VARCHAR(30),
+		key_value   varchar(64)
+	);
+
+	APPLY ('INSERT INTO myproj.k_store ( 
+		:key_name
+		,:key_value
+		);'
+	)
+		 
+	TO OPERATOR ($INSERTER()[1] ATTR (
+			TdpId = '<Teradata_Host/IP>'
+			,UserName = '<Teradata_Username>'
+			,UserPassword = '<Teradata_Password>'
+			,PrivateLogName = 'insert_priv_log'
+		)
+	)
+
+	SELECT * FROM OPERATOR ( 
+		$FILE_READER (hmac_metadata)[1]    ATTR (
+			FileName = 'hmac_sample_keys.txt'
+				 ,Format = 'Delimited'
+				 ,DirectoryPath = '.'
+		)
+	);
+);
